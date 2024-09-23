@@ -1,19 +1,32 @@
+#define _USE_MATH_DEFINES
 #include <SFML/Graphics.hpp>
+#include <iostream>
+#include <cmath>
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(600, 400), L"Иллюзия", sf::Style::Default);
+    sf::RenderWindow window(sf::VideoMode(1000, 600), L"MovingCircle", sf::Style::Default);
+
+    sf::Texture sticker;
+    if (!sticker.loadFromFile("sticker.png")) {
+        std::cout << "Error loading texture...";
+    }
 
     window.setVerticalSyncEnabled(true);
 
-    sf::CircleShape circle(60);
-    circle.setFillColor(sf::Color::White);
-    circle.setOutlineThickness(5);
-    circle.setOutlineColor(sf::Color::Red);
+    sf::RectangleShape rect(sf::Vector2f(40, 40));
+    rect.setTexture(&sticker);
+    rect.setOrigin(20, 0);
+    rect.setScale(5, 5);
 
-    bool goBack = false;
-    float speed = 1.;
-    int dir = 1;
+    sf::Vector2u size = window.getSize();
+    int width = size.x;
+    int height = size.y;
+
+    sf::Vector2f currentPosition;
+    float differenceX = 0;
+    float differenceY = 0;
+    float rotationAngle = 0.0f;
 
     while (window.isOpen())
     {
@@ -22,37 +35,27 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
-            if (event.type == sf::Event::KeyPressed)
-            {
-                switch (event.key.code)
-                {
-                case sf::Keyboard::Up: speed += 0.2;
-                    break;
-                case sf::Keyboard::Down:
-                    speed = std::max(0.0, speed - 0.2);
-                    break;
+            if (event.type == sf::Event::Resized) {
+                window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+                size = window.getSize();
+                width = size.x;
+                height = size.y;
+            }
+            if (event.type == sf::Event::MouseMoved) {
+                currentPosition = rect.getPosition();
+                differenceX = currentPosition.x - event.mouseMove.x;
+                differenceY = currentPosition.y - event.mouseMove.y;
+                if (sqrt(pow(differenceX, 2) + pow(differenceY, 2)) > 1) {
+                    currentPosition.x = event.mouseMove.x;
+                    currentPosition.y = event.mouseMove.y;
+                    rotationAngle = atan2(differenceY, differenceX) / M_PI * 180 - 90;
                 }
+                rect.setPosition(sf::Vector2f(currentPosition.x, currentPosition.y));
+                rect.setRotation(rotationAngle);
             }
         }
-        
-        // circle.setPosition(sf::Vector2f(circle.getPosition().x + 1, circle.getPosition().y));
-        // circle.setPosition(circle.getPosition().x + 1, circle.getPosition().y);
-
-        if (goBack == false) {
-            circle.setPosition(sf::Vector2f(circle.getPosition().x + dir*speed, circle.getPosition().y));
-            if (circle.getPosition().x > 600 - 120) {
-                goBack = true;
-            }
-        }
-        else {
-            circle.setPosition(sf::Vector2f(circle.getPosition().x - dir*speed, circle.getPosition().y));
-            if (circle.getPosition().x < 0) {
-                goBack = false;
-            }
-        }
-
-        window.clear(sf::Color::Black);
-        window.draw(circle);
+        window.clear();
+        window.draw(rect);
         window.display();
     }
     return 0;
